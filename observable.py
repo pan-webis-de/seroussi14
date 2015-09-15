@@ -1,7 +1,7 @@
 '''
 Created on Sep 14, 2015
 
-@author_index: thomas
+@author: thomas
 '''
 import string
 
@@ -81,11 +81,11 @@ class Corpus(object):
       
     def find_all_authors(self):
         '''
-        Construct a dict containing author_index IDs as keys and integer indices.
+        Construct a dict containing author IDs as keys and integer indices.
         '''
         # Initialize a set.
         authorID_set = set()
-        # Loop over all documents and add the author_index to the set.
+        # Loop over all documents and add the author to the set.
         for doc in self.documents:
             authorID_set.add(doc.authorID)
         # Update the number of authors.
@@ -95,7 +95,7 @@ class Corpus(object):
       
     def index_authors(self):
         '''
-        Store the index of every documents author_index in the document object.
+        Store the index of every documents author in the document object.
         '''
         # Loop over all documents.
         for doc in self.documents:
@@ -161,7 +161,7 @@ class Document:
         self.ID = ID
         self.index = 0  # Integer index for use in the model.
         self.authorID = ""
-        self.author_index = -1    # Variable for the author_index index according to the set of corpus authors.
+        self.author_index = -1    # Variable for the author index according to the set of corpus authors.
         # Initialize list for words in form of a string.
         self.words_strings = []
         # Initialize list for words in form of an index.

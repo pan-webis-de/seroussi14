@@ -1,7 +1,7 @@
 '''
 Created on Sep 15, 2015
 
-@author_index: thomas
+@author: thomas
 '''
 
 import observable
@@ -23,7 +23,7 @@ class Learning_Chain(object):
         self.D = Corp.D     # Number of documents.
         self.V = Corp.V     # Number of words in vocabulary.
         self.N = []         # Vector of number of words in each document.
-        self.T_A = T_A      # Number of author_index topics.
+        self.T_A = T_A      # Number of author topics.
         self.T_D = T_D      # Number of document topics.
         
         self.authors = []       # Vector of author indices.
@@ -43,7 +43,7 @@ class Learning_Chain(object):
         for doc in Corp.documents:
             # Copy word number.
             self.N.append(doc.N)
-            # Copy author_index index.
+            # Copy author index.
             self.authors.append(doc.author_index)
             # Copy word vector.
             self.words.append(doc.words)
