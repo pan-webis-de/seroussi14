@@ -5,24 +5,24 @@ Created on Sep 14, 2015
 '''
 
 import PAN11Corpus
-
+import model
+import timeit
 
 def main():        
-    Corp = PAN11Corpus.Corpus('PAN11Large','../resources/PAN11/training/LargeTrain.xml')
-#     Corp = PAN11Corpus.Corpus('PAN11Large','pan11single.xml')
-#     Corp = PAN11Corpus.Corpus('PAN11Large','pan11some.xml')
-    Corp.importPAN11()
-   
-    Corp.process_raw_data()
-    
-#     for doc in Corp.documents:
-#         print("AuthorID : {}".format(doc.authorID))
-#         print("Author ind : {}".format(doc.author))
-        
-    print("Vocabulary size : {}".format(Corp.V))
-    print("Number of documents : {}".format(Corp.D)) 
-    print("Number of authors : {}".format(Corp.A))
+    Corp = import_PAN11()
+    chain = model.Learning_Chain(Corp,90,10)
     
 
+def import_PAN11():
+        Corp = PAN11Corpus.Corpus('PAN11Large','../resources/PAN11/training/LargeTrain.xml')
+        Corp.import_PAN11()
+        Corp.process_raw_data()
+        return Corp
+        
+def PAN11_chain():
+    Corp = import_PAN11()
+    chain = model.Learning_Chain(Corp,90,10)
+    return chain
+    
 if __name__ == "__main__":
     main();

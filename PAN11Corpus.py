@@ -4,10 +4,10 @@ Created on Sep 14, 2015
 @author: thomas
 '''
 
-import structure
+import observable
 import string
 
-class Corpus(structure.Corpus):
+class Corpus(observable.Corpus):
     '''
     Class which inherits from Corpus to import a PAN11 dataset.
     '''
@@ -16,7 +16,7 @@ class Corpus(structure.Corpus):
         self.filename = filename
         super(Corpus, self).__init__(name)
  
-    def importPAN11(self):
+    def import_PAN11(self):
         '''
         Import documents from a PAN11 file.
         ''' 
@@ -39,7 +39,7 @@ class Corpus(structure.Corpus):
                         textID = line[start_ind:stop_ind];
                         
                         # Create new document with ID.
-                        doc = structure.Document(textID)
+                        doc = observable.Document(textID)
                         self.documents.append(doc)
                         
                         # Set the in_text flag.
