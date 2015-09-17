@@ -19,6 +19,9 @@
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/discrete_distribution.hpp>
 
+class Dynamic_Counter;
+class Static_Counter;
+
 class MIChain {
 public:
 
@@ -54,12 +57,12 @@ public:
 	double sum_beta_D;
 
 	// Count variables.
-	int* c_d_DA;      				// Count of words assigned to author topics in document d.
-	int* c_d_DD;					// Count of words assigned to document topics in document d.
-	std::map<int,int>** c_dt_DT;	// Count of words assigned to document topic t in document d.
-	std::map<int,int>** c_at_AT;	// Count of author topic t assignments to author a.
-	std::map<int,int>** c_tw_ATV;	// Count of word w in author topic t.
-	std::map<int,int>** c_tw_DTV;	// Count of word w in document topic t.
+	Static_Counter* c_d_DA;      			// Count of words assigned to author topics in document d.
+	Static_Counter* c_d_DD;					// Count of words assigned to document topics in document d.
+	Static_Counter** c_dt_DT;	// Count of words assigned to document topic t in document d.
+	Static_Counter** c_at_AT;	// Count of author topic t assignments to author a.
+	Dynamic_Counter** c_tw_ATV;	// Count of word w in author topic t.
+	Dynamic_Counter** c_tw_DTV;	// Count of word w in document topic t.
 
 	std::map<int,std::pair<int,int> >* lookup;		// Lookuptable for combinations.
 	int N_comb;										// Number of possible combinations of identifier and topics.
@@ -88,7 +91,7 @@ public:
 	int sum_map_values(std::map<int,int>* m);		// Sum the values of a map.
 };
 
-class Counter {
+class Dynamic_Counter {
 public:
 	// Map to store entries and counts.
 	std::map<int,int> entries;
@@ -96,7 +99,7 @@ public:
 	int count_sum;
 
 
-	Counter() {
+	Dynamic_Counter() {
 		// Constructor
 		this->count_sum = 0;
 	}
@@ -135,6 +138,75 @@ public:
 		int cnt = 0;
 		if (this->entries.count(ind) == 1) cnt = this->entries[ind];
 		return cnt;
+	}
+
+	int sum() {
+		// Return sum.
+		return this->count_sum;
+	}
+};
+
+class Static_Counter {
+private:
+	// Map to store entries and counts.
+	int* entries;
+	int length;
+	// Variable to cache sum.
+	int count_sum;
+
+public:
+	Static_Counter() {
+		// Constructor
+		this->length = 0;
+		this->entries = new int[0];
+		this->count_sum = 0;
+	}
+	Static_Counter(int length) {
+		// Constructor
+		this->length = length;
+		this->entries = new int[this->length];
+		for (int i=0; i<this->length; i++) this->entries[i] = 0;
+		this->count_sum = 0;
+	}
+
+	virtual ~Static_Counter() {
+		delete[] this->entries;
+	}
+
+	void reconstruct(int length) {
+		// Set new length;
+		this->length = length;
+		this->count_sum = 0;
+		// Delte old array;
+		delete[] this->entries;
+		// Create new array;
+		this->entries = new int[this->length];
+		for (int i=0; i<this->length; i++) this->entries[i] = 0;
+	}
+
+	void inc(int ind) {
+		// Increment count of index ind by 1 if exist.
+		this->entries[ind] += 1;
+		// Update sum.
+		this->count_sum += 1;
+	}
+
+	void dec(int ind) {
+		// Decrement count of index ind by 1 if it exists and its greater than 1.
+		if (this->entries[ind] > 0) {
+			// Decremented entry.
+			this->entries[ind] -=1;
+			// Decrement sum.
+			this->count_sum -= 1;
+		} else {
+			// Attempt to decrement non-existent index. Print error.
+			std::cerr << "Attempt to decrement non-existent count. Exiting!" << std::endl;
+		}
+	}
+
+	int at(int ind) {
+		// Return the count to index ind. Return 0 if entry to ind doesn't exist.
+		return this->entries[ind];
 	}
 
 	int sum() {

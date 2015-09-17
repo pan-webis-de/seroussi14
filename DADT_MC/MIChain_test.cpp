@@ -44,8 +44,8 @@ TEST(InitTest, CanInitialize) {
     EXPECT_DOUBLE_EQ(1.0, chain->sum_alpha_D);
     EXPECT_DOUBLE_EQ(27101*0.01+0.009*500, chain->sum_beta_A);
     EXPECT_DOUBLE_EQ(27101*0.01-0.009*500, chain->sum_beta_D);
-    // Test insertion into a map in c_dt_DT.
-    chain->c_dt_DT[10]->insert(std::pair<int,int>(2,5));
+    // Increment index 2 of c_dt_DT in document 10 five times.
+    for (int i=0; i<5; i++) chain->c_dt_DT[10]->inc(2);
     EXPECT_EQ(5, chain->c_dt_DT[10]->at(2));
     // Check number of identifier and topic combinations.
     EXPECT_EQ(100, chain->N_comb);
@@ -103,28 +103,28 @@ TEST(SampleTest, time) {
     std::cout << t.elapsed() << " sec elapsed for one sampling." << std::endl;
 }
 
-//TEST(IterateTest, time) {
-//    MIChain* chain = new MIChain("../PAN11Large.h5");
-//    boost::timer t;
-//    chain->iterate(1);
-//    std::cout << t.elapsed() << " sec elapsed for one sampling." << std::endl;
-//}
+TEST(IterateTest, time) {
+    MIChain* chain = new MIChain("../PAN11Large.h5");
+    boost::timer t;
+    chain->iterate(1);
+    std::cout << t.elapsed() << " sec elapsed for one iteration." << std::endl;
+}
 
 
-TEST(CounterTest, CanInitialize) {
-	Counter c;
+TEST(DynCounterTest, CanInitialize) {
+	Dynamic_Counter c;
 	EXPECT_EQ(0, c.sum());
 }
 
-TEST(CounterTest, Insert) {
-	Counter c;
+TEST(DynCounterTest, Insert) {
+	Dynamic_Counter c;
 	c.inc(2);
 	EXPECT_EQ(1, c.sum());
 	EXPECT_EQ(1, c.at(2));
 }
 
-TEST(CounterTest, Increment) {
-	Counter c;
+TEST(DynCounterTest, Increment) {
+	Dynamic_Counter c;
 	c.inc(10);
 	c.inc(2);
 	c.inc(2);
@@ -132,8 +132,8 @@ TEST(CounterTest, Increment) {
 	EXPECT_EQ(2, c.at(2));
 }
 
-TEST(CounterTest, Decrement) {
-	Counter c;
+TEST(DynCounterTest, Decrement) {
+	Dynamic_Counter c;
 	c.inc(10);
 	c.inc(2);
 	c.inc(2);
@@ -142,12 +142,43 @@ TEST(CounterTest, Decrement) {
 	EXPECT_EQ(1, c.at(2));
 }
 
-TEST(CounterTest, Remove) {
-	Counter c;
+TEST(DynCounterTest, Remove) {
+	Dynamic_Counter c;
 	c.inc(10);
 	c.inc(2);
 	c.inc(2);
 	c.dec(10);
 	EXPECT_EQ(2, c.sum());
 	EXPECT_EQ(0, c.entries.count(10));
+}
+
+TEST(StatCounterTest, CanInitialize) {
+	Static_Counter c(20);
+	EXPECT_EQ(0, c.sum());
+}
+
+TEST(StatCounterTest, Insert) {
+	Static_Counter c(20);
+	c.inc(2);
+	EXPECT_EQ(1, c.sum());
+	EXPECT_EQ(1, c.at(2));
+}
+
+TEST(StatCounterTest, Increment) {
+	Static_Counter c(20);
+	c.inc(10);
+	c.inc(2);
+	c.inc(2);
+	EXPECT_EQ(3, c.sum());
+	EXPECT_EQ(2, c.at(2));
+}
+
+TEST(StatCounterTest, Decrement) {
+	Static_Counter c(20);
+	c.inc(10);
+	c.inc(2);
+	c.inc(2);
+	c.dec(2);
+	EXPECT_EQ(2, c.sum());
+	EXPECT_EQ(1, c.at(2));
 }

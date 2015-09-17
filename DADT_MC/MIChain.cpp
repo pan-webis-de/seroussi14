@@ -87,28 +87,26 @@ MIChain::MIChain(std::string h5filename) {
 
 
 	// Count variables.
-	this->c_d_DA = new int[this->D];      				// Count of words assigned to author topics in document d.
-	this->c_d_DD = new int[this->D];					// Count of words assigned to document topics in document d.
-	this->c_dt_DT = new std::map<int,int>*[this->D];	// Count of words assigned to document topic t in document d.
+	this->c_d_DA = new Static_Counter(this->D);      				// Count of words assigned to author topics in document d.
+	this->c_d_DD = new Static_Counter(this->D);					// Count of words assigned to document topics in document d.
+	this->c_dt_DT = new Static_Counter*[this->D];	// Count of words assigned to document topic t in document d.
 	// Loop over all documents and initialize values.
-	for (int i =0; i<this->D; i++) {
-		this->c_d_DA[i] = 0;
-		this->c_d_DD[i] = 0;
-		this->c_dt_DT[i] = new std::map<int,int>;
+	for (int i=0; i<this->D; i++) {
+		this->c_dt_DT[i] = new Static_Counter(this->T_D) ;
 	}
-	this->c_at_AT = new std::map<int,int>*[this->A];	// Count of author topic t assignments to author a.
-	this->c_tw_ATV = new std::map<int,int>*[this->T_A];	// Count of word w in author topic t.
-	this->c_tw_DTV = new std::map<int,int>*[this->T_D];	// Count of word w in document topic t.
+	this->c_at_AT = new Static_Counter*[this->A];	// Count of author topic t assignments to author a.
+	this->c_tw_ATV = new Dynamic_Counter*[this->T_A];	// Count of word w in author topic t.
+	this->c_tw_DTV = new Dynamic_Counter*[this->T_D];	// Count of word w in document topic t.
 
 	// Initialize the arrays with maps.
 	for (int i=0; i<this->A; i++)
-		this->c_at_AT[i] = new std::map<int,int>;
+		this->c_at_AT[i] = new Static_Counter(this->T_A);
 
 	for (int i=0; i<this->T_A; i++)
-		this->c_tw_ATV[i] = new std::map<int,int>;
+		this->c_tw_ATV[i] = new Dynamic_Counter();
 
 	for (int i=0; i<this->T_D; i++)
-		this->c_tw_DTV[i] = new std::map<int,int>;
+		this->c_tw_DTV[i] = new Dynamic_Counter();
 
 	// Construct a lookup table for indices and indicator, topic combinations in form of tuples (y,t). Used for sampling.
 	this->N_comb = this->T_A + this->T_D;
@@ -146,7 +144,7 @@ MIChain::~MIChain() {
 		delete this->c_tw_DTV[i];
 
 	for (int i=1; i<this->D; i++) {
-		delete[] this->c_dt_DT[i];
+		delete this->c_dt_DT[i];
 		delete[] this->words[i];
 		delete[] this->topics[i];
 		delete[] this->indicators[i];
@@ -159,8 +157,8 @@ MIChain::~MIChain() {
 	delete[] this->indicators;
 	delete[] this->N;
 
-	delete[] this->c_d_DA;
-	delete[] this->c_d_DD;
+	delete this->c_d_DA;
+	delete this->c_d_DD;
 
 	delete[] this->c_at_AT;
 	delete[] this->c_tw_ATV;
@@ -228,18 +226,16 @@ void MIChain::calc_prob(int w, int a, int y_old, int t_old, int d, int ind){
 		// Probability for document topic y = 0.
 		// First calculate all the factors needed.
 		// b is the term in parentheses.
-		b = this->delta_D + this->c_d_DD[t];
+		b = this->delta_D + this->c_d_DD->at(t);
 		// n1 is the first numerator.
-		if (this->c_dt_DT[d]->count(t) == 1) n1 = this->alpha_D + this->c_dt_DT[d]->at(t);
-		else n1 = this->alpha_D;
+		n1 = this->alpha_D + this->c_dt_DT[d]->at(t);
 		// n2 is the second numerator.
-		if (this->c_tw_DTV[t]->count(w) == 1) n2 = this->beta_D[w] + this->c_tw_DTV[t]->at(w);
-		else n2 = this->beta_D[w];
+		n2 = this->beta_D[w] + this->c_tw_DTV[t]->at(w);
 		// d1 is the first denominator.
-		d1 = this->sum_alpha_D + this->sum_map_values(this->c_dt_DT[d]);
+		d1 = this->sum_alpha_D + this->c_dt_DT[d]->sum();
 		if (y_old == 0) d1--;	// All counts exclude current index.
 		// d2 is the second denominator.
-		d2 = this->sum_beta_D + this->sum_map_values(this->c_tw_DTV[t]);
+		d2 = this->sum_beta_D + this->c_tw_DTV[t]->sum();
 		if (y_old == 0 and t_old == t) d2--;
 		// Calculate the probability.
 		this->p[cnt++] = b*n1*n2/d1/d2;
@@ -248,18 +244,16 @@ void MIChain::calc_prob(int w, int a, int y_old, int t_old, int d, int ind){
 		// Probability for author topic y = 1.
 		// First calculate all the factors needed.
 		// b is the term in parentheses.
-		b = this->delta_A + this->c_d_DA[t];
+		b = this->delta_A + this->c_d_DA->at(d);
 		// n1 is the first numerator.
-		if (this->c_at_AT[a]->count(t) == 1) n1 = this->alpha_A + this->c_at_AT[a]->at(t);
-		else n1 = this->alpha_A;
+		n1 = this->alpha_A + this->c_at_AT[a]->at(t);
 		// n2 is the second numerator.
-		if (this->c_tw_ATV[t]->count(w) == 1) n2 = this->beta_A[w] + this->c_tw_ATV[t]->at(w);
-		else n2 = this->beta_A[w];
+		n2 = this->beta_A[w] + this->c_tw_ATV[t]->at(w);
 		// d1 is the first denominator.
-		d1 = this->sum_alpha_A + this->sum_map_values(this->c_at_AT[a]);
+		d1 = this->sum_alpha_A + this->c_at_AT[a]->sum();
 		if (y_old == 1) d1--;	// All counts exclude current index.
 		// d2 is the second denominator.
-		d2 = this->sum_beta_A + this->sum_map_values(this->c_tw_ATV[t]);
+		d2 = this->sum_beta_A + this->c_tw_ATV[t]->sum();
 		if (y_old == 1 and t_old == t) d2--;
 		// Calculate the probability.
 		this->p[cnt++] = b*n1*n2/d1/d2;
@@ -283,32 +277,24 @@ void MIChain::update_counts(int w, int d, int a, int y_old, int y_new, int t_old
 	if (!this->is_first_iteration) {
 		// Lower the counts according to the old variables.
 		if (y_old==0) {		// Belonged to document topic.
-			this->c_d_DD[d] -= 1;
-			this->c_dt_DT[d]->at(t_old) -= 1;
-			this->c_tw_DTV[t_old]->at(w) -= 1;
+			this->c_d_DD->dec(d);
+			this->c_dt_DT[d]->dec(t_old);
+			this->c_tw_DTV[t_old]->dec(w);
 		} else {			// Belonged to author topic.
-			this->c_d_DA[a] -= 1;
-			this->c_at_AT[a]->at(t_old) -= 1;
-			this->c_tw_ATV[t_old]->at(w) -= 1;
+			this->c_d_DA->dec(d);
+			this->c_at_AT[a]->dec(t_old);
+			this->c_tw_ATV[t_old]->dec(w);
 		}
 	}
 	// Increment to counts according to the new variables.
 	if (y_new == 0) {		// Belongs to a document topic.
-		this->c_d_DD[d] += 1;
-
-		if (this->c_dt_DT[d]->count(t_new) == 1) this->c_dt_DT[d]->at(t_new) += 1;
-		else this->c_dt_DT[d]->insert(std::pair<int,int>(t_new, 1));
-
-		if (this->c_tw_DTV[t_new]->count(w) == 1) this->c_tw_DTV[t_new]->at(w) +=1;
-		else this->c_tw_DTV[t_new]->insert(std::pair<int,int>(w, 1));
+		this->c_d_DD->inc(d);
+		this->c_dt_DT[d]->inc(t_new);
+		this->c_tw_DTV[t_new]->inc(w);
 	} else {				// Belongs to an author topic.
-		this->c_d_DA[d] += 1;
-
-		if (this->c_at_AT[a]->count(t_new) == 1) this->c_at_AT[a]->at(t_new) += 1;
-		else this->c_at_AT[a]->insert(std::pair<int,int>(t_new, 1));
-
-		if (this->c_tw_ATV[t_new]->count(w) == 1) this->c_tw_ATV[t_new]->at(w) +=1;
-		else this->c_tw_ATV[t_new]->insert(std::pair<int,int>(w, 1));
+		this->c_d_DA->inc(d);
+		this->c_at_AT[a]->inc(t_new);
+		this->c_tw_ATV[t_new]->inc(w);
 	}
 }
 
