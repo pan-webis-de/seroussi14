@@ -4,7 +4,8 @@ Created on Sep 14, 2015
 @author: thomas
 '''
 import string
-
+import nltk
+import h5py
 
 class Corpus(object):
     '''
@@ -25,7 +26,7 @@ class Corpus(object):
         self.authors = {}
         self.is_stopword = []   # List of stopword identifier. 0 if not, 1 if its a stopword.
         self.num_stopwords = 0  # Counter for the number of stopwords in the vocabulary.
-        
+            
         
     def index_douments(self):
         '''
@@ -36,26 +37,26 @@ class Corpus(object):
             doc.index = index
         
         
-    def separate_words(self):
+    def word_tokenize(self):
         '''
-        For every document built a list of words_strings out of the documents' text.
+        For every document built a list of tokens out of the documents' text.
         '''
         for doc in self.documents:
-            doc.separate_words()
+            doc.word_tokenize()
             
             
     def built_vocabluary(self):
         '''
-        Built a list of words_strings in the corpus.
-        The separate_words functions must be called prior to this function.
+        Built a list of tokens in the corpus.
+        The word_tokenize functions must be called prior to this function.
         '''
         # Create an empty set.
         vocab_set = set()
         
         # Loop over documents.
         for doc in self.documents:
-            # Loop over words_strings and add each word to the set.
-            for word in doc.words_strings:
+            # Loop over tokens and add each word to the set.
+            for word in doc.tokens:
                 vocab_set.add(word)
         # Update vocabulary size variable.
         self.V = len(vocab_set)
@@ -75,7 +76,7 @@ class Corpus(object):
         # Loop over all documents.
         for doc in self.documents:
             # Loop over all words in a document.
-            for word in doc.words_strings:
+            for word in doc.tokens:
                 doc.words.append(self.vocab_dict[word])
       
       
@@ -128,7 +129,7 @@ class Corpus(object):
         Apply all the steps necessary to obtain data in the form needed for the algorithm.
         '''
         # Word processing.
-        self.separate_words()
+        self.word_tokenize()
         self.built_vocabluary()
         self.index_words()
         self.identify_stopwords()
@@ -143,10 +144,66 @@ class Corpus(object):
         '''
         print("Vocabulary size : {}".format(self.V))
         print("Number of documents : {}".format(self.D)) 
-        print("Number of authors : {}".format(self.A))
+        print("Number of axuthors : {}".format(self.A))
         print("Number of stopwords : {} of 571 in stopword list.".format(self.num_stopwords))
 
-                
+         
+    def save_to_hdf5(self):
+        '''
+        Save the complete corpus to an hdf5 file.
+        '''
+        filename = self.name + '.h5'
+        # Create new file, let fail if exists.
+        f = h5py.File(filename, 'x')
+        
+        corpus_group = f.create_group('corpus')
+        corpus_group.attrs['name'] = self.name
+        corpus_group.attrs['info'] = 'Created from PAN11 LargeTrain data set excluding LargeTrain/a8964.xml and LargeTrain/a7655.xml. Words tokenized using nltk.word_tokenize() and normalized using string.lower().'
+        
+        group_documents = corpus_group.create_group('documents')
+        group_documents.attrs['info'] = 'Group of documents, each labeled by their integer index, containing a vector of words in form of integer labels.'
+        
+        authors_vec = [] # Vector containing author labels for each document.
+        N = []      # Vector containing number of words for each document.
+
+
+        for ind, doc in enumerate(self.documents):
+            # Safe words vector to the database.
+            dset_doc = group_documents.create_dataset("{}".format(ind), data=doc.words)
+            dset_doc.attrs['text'] = doc.body
+            dset_doc.attrs['authorID'] = doc.authorID
+            dset_doc.attrs['author_index'] = doc.author_index
+            dset_doc.attrs['textID'] = doc.ID
+            dset_doc.attrs['number of words'] = doc.N
+                      
+            # Copy word number.
+            N.append(doc.N)
+            # Copy author index.
+            authors_vec.append(doc.author_index)
+
+            
+        dset_authors = corpus_group.create_dataset('authors', data=authors_vec)   # Vector of author indices.
+        dset_authors.attrs['info'] = 'Vector of author indices containing an author integer index for every document.'
+        dset_N = corpus_group.create_dataset('N', data=N)                     # Vector of word counts.
+        dset_N.attrs['info'] = 'Vector of word counts for every document.'
+        dset_stopword_indicator = corpus_group.create_dataset('stopword_indicator', data=self.is_stopword)
+        dset_stopword_indicator.attrs['info'] = 'Vector of stopword indicators for every word in the vocabulary. 0 if word at index is not a stop word. 1 if it is.'
+        
+        
+        dset_V = corpus_group.create_dataset('V', data=self.V)
+        dset_V.attrs['info'] = 'Number of words in the vocabulary.'
+        dset_D = corpus_group.create_dataset('D', data=self.D)
+        dset_D.attrs['info'] = 'Number of documents.'
+        dset_A = corpus_group.create_dataset('A', data=self.A)
+        dset_A.attrs['info'] = 'Number of authors.'
+        
+        vocab_string = ""
+        for word in self.vocab:
+            vocab_string = vocab_string + word + " "
+#         dset_vocab = corpus_group.create_dataset('Vocabulary', data=self.vocab)
+#         dset_vocab.attrs['info'] = 'Vocabulary vector. Words in form of index refer to this vocabulary vector.'
+        dset_V.attrs['vocabulary string'] = vocab_string
+
         
 class Document:
     '''
@@ -154,7 +211,15 @@ class Document:
     '''
     
     # Set with punctuation characters.
-    punct = set(string.punctuation)
+    punct = set([',','.','@',"'"])
+    punct_to_del = set(string.punctuation)
+    for p in punct:
+        punct_to_del.remove(p)
+    
+    for n in ['0','1','2','3','4','5','6','7','8','9']:
+        punct_to_del.add(n)
+    
+
     
     def __init__(self, ID):
         self.body = ""
@@ -163,29 +228,55 @@ class Document:
         self.authorID = ""
         self.author_index = -1    # Variable for the author index according to the set of corpus authors.
         # Initialize list for words in form of a string.
-        self.words_strings = []
+        self.tokens = []
         # Initialize list for words in form of an index.
         self.words = []
         # Number of words in the document.
         self.N = 0
         
         
-    def separate_words(self):
+    def word_tokenize(self):
+        '''
+        Tokenize words using the word tokenizer from nltk.
+        '''
+        
+        # Remove "<NAME/># from the text.
+        clean_body = self.body.replace("<NAME/>","")
+        
+        # Tokenize words.
+        self.tokens = nltk.word_tokenize(clean_body)
+        
+        # Update number of words.
+        self.N = len(self.tokens)
+        
+        # Normalize words.
+        for i in range(self.N):
+            self.tokens[i] = self.tokens[i].lower()
+        
+        
+        
+    def word_tokenize_own(self):
         ''' 
         Construct a list with words using the text in self.body.
         Words are not necessarily in the original sequence.
         Punctuation at the beginning and the end gets removed.
         '''
         
-        words_splitted = string.split(self.body)
+        clean_body = self.body
+        # Remove all unwanted punctuation.
+        for p in self.punct_to_del:
+            clean_body = clean_body.replace(p, "")
+        
+        words_splitted = clean_body.split()
         
         # Loop over words.
         for word in words_splitted:
             # Ignore names specified by <NAME/>, for PAN11.
             word = word.replace("<NAME/>","")
+     
             
             # Make all characters lower case.
-            word = string.lower(word)
+            word = word.lower()
             
             # Set flags to false.
             is_left_punctuation_removed = False
@@ -195,22 +286,22 @@ class Document:
             while not(is_left_punctuation_removed and is_right_punctuation_removed):
                 # Check beginning for punctuation character.
                 if len(word) > 0 and word[0] in self.punct:
-                    self.words_strings.append(word[0])
+                    self.tokens.append(word[0])
                     if len(word) > 0:
                         word = word[1:]
                 else:
                     is_left_punctuation_removed = True
                 # Check end for punctuation character.
                 if len(word) > 0 and word[-1] in self.punct:
-                    self.words_strings.append(word[-1])
+                    self.tokens.append(word[-1])
                     if len(word) > 0:
                         word = word[:-1]
                 else:
                     is_right_punctuation_removed = True
                     
             if len(word) > 0:
-                self.words_strings.append(word)
+                self.tokens.append(word)
         
         # Update number of words.
-        self.N = len(self.words_strings)
+        self.N = len(self.tokens)
                         

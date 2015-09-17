@@ -8,17 +8,22 @@ import observable
 import numpy as np
 from numpy import dtype
 from numpy import random
+import h5py
 
-class Learning_Chain(object):
+class MI_Chain(object):
     '''
-    Class for a Markov Learning_Chain used for model inference.
+    Class for a Markov MI_Chain used for model inference.
     '''
 
     def __init__(self, Corp, T_A, T_D):
         '''
         Constructor:
-        Copy observable varaibles from the corpus.
+        Copy observable variables from the corpus.
         '''
+        # Seed the random number generator.
+        random.seed(0)
+        # Copy the name.
+        self.name = Corp.name
         
         self.A = Corp.A     # Number of authors.
         self.D = Corp.D     # Number of documents.
@@ -86,7 +91,7 @@ class Learning_Chain(object):
         for t in range(self.T_A):
             self.lookup_comb[cnt] = (1,t)     # y=1 for author topic.
             cnt += 1    # Update counter.
-                
+              
         
     def sample(self,d,i):
         '''
@@ -159,6 +164,15 @@ class Learning_Chain(object):
             p[cnt] = b*n1*n2/d1/d2
             cnt += 1    # Update counter.
                 
+        # Check that all entries of p are positive.
+        if (p < 0).any():
+            print("Non-positive probability encourntered.")
+            print(p)
+            print(self.c_d_DA)
+        
+        # Check that all counts are positive.
+#         self.check_counts_non_negative()
+                
         # Normalize p to 1.
         p = p/sum(p)
         
@@ -183,11 +197,11 @@ class Learning_Chain(object):
         # Lower the counts according to the old variables.
         if old_y != None:   # Consider the case that its the initial iteration. Then the old variables are None.
             if old_y == 0:
-                self.c_d_DD -= 1
+                self.c_d_DD[d] -= 1
                 self.c_dt_DT[d][old_t] -= 1
                 self.c_tw_DTV[old_t][w] -= 1 
             else:
-                self.c_d_DA -= 1
+                self.c_d_DA[a] -= 1
                 self.c_at_AT[a][old_t] -= 1
                 self.c_tw_ATV[old_t][w] -= 1
         
@@ -214,12 +228,41 @@ class Learning_Chain(object):
                 self.c_tw_ATV[new_t][w] = 1
          
              
+    def check_counts_non_negative(self):
+        '''
+        Check that all counts are non-negative.
+        '''
+        # Loop over all counts.
+        
+        for t in self.c_tw_DTV:        # Count of word w in document topic t.
+            if (np.array(t.values()) < 0).any():
+                print("Negative count in c_tw_DTV for topic {}".format(t))
+        
+        for t in self.c_tw_ATV:        # Count of word w in author topic t.
+            if (np.array(t.values()) < 0).any():
+                print("Negative count in c_tw_ATV for topic {}".format(t))
+        
+        for a in self.c_at_AT:        # Count of author topic t assignments to author a.
+            if (np.array(a.values()) < 0).any():
+                print("Negative count in c_at_AT for author {}".format(a))
+                
+        for d in self.c_dt_DT:        # Count of words assigned to document topic t in document d.
+            if (np.array(d.values()) < 0).any():
+                print("Negative count in c_dt_DT for document {}".format(d))
+       
+        if (self.c_d_DD < 0).any():   # Count of words assigned to document topics in document d.
+            print("Negative count in c_d_DD")
+        if (self.c_d_DA < 0).any():   # Count of words assigned to author topics in document d.
+            print("Negative count in c_d_DA")
+        
+             
     def iterate(self):
         '''
         Perform one iteration of the Markov chain
         '''
         # Loop over all words in all documents.
         for d in range(self.D):
+#             print d
             for i in range(self.N[d]):
                 self.sample(d,i)
         

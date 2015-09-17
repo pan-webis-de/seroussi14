@@ -31,10 +31,10 @@ class Corpus(observable.Corpus):
                 # Check line for different possible elements (text,author,body)
                 if not(in_text):
                     # Check for beginning of text element. 
-                    if string.find(line, "<text file=") != -1: 
+                    if line.find("<text file=") != -1: 
                         # Find the indices of the information in the string.
-                        start_ind = string.find(line, "file=") +6
-                        stop_ind = string.find(line, ">") -1
+                        start_ind = line.find( "file=") +6
+                        stop_ind = line.find( ">") -1
                         # Extract textID. 
                         textID = line[start_ind:stop_ind];
                         
@@ -48,7 +48,7 @@ class Corpus(observable.Corpus):
                     # Check if in body.
                     if in_body:
                         # Check for end of body element.
-                        if string.find(line,"</body>") != -1:
+                        if line.find("</body>") != -1:
                             # Set flag and continue with next line.
                             in_body = False
                             continue
@@ -58,22 +58,22 @@ class Corpus(observable.Corpus):
                             continue
                     
                     # Check for beginning of body element.
-                    if string.find(line, "<body>") != -1:
+                    if line.find( "<body>") != -1:
                         # Set flag and continue with next line.
                         in_body = True
                         continue
                     
                     # Check for end of a text element.
-                    if string.find(line, "</text>") != -1:
+                    if line.find( "</text>") != -1:
                         # Set the flag and continue with next line.
                         in_text = False
                         continue
                         
                     # Check for an author element.
-                    if string.find(line, "<author id=") != -1:
+                    if line.find( "<author id=") != -1:
                         # Find the indices of the information in the string.
-                        start_ind = string.find(line,"id=") +4
-                        stop_ind = string.find(line,"/>") -1
+                        start_ind = line.find("id=") +4
+                        stop_ind = line.find("/>") -1
                         # Extract author ID.
                         author = line[start_ind:stop_ind]
                         # Store author ID in last created document.
