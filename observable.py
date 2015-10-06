@@ -6,6 +6,7 @@ Created on Sep 14, 2015
 import string
 import nltk
 import h5py
+import numpy as np
 
 class Corpus(object):
     '''
@@ -203,7 +204,37 @@ class Corpus(object):
 #         dset_vocab = corpus_group.create_dataset('Vocabulary', data=self.vocab)
 #         dset_vocab.attrs['info'] = 'Vocabulary vector. Words in form of index refer to this vocabulary vector.'
         dset_V.attrs['vocabulary string'] = vocab_string
-
+        
+        # Store number of documents per author.
+        self.text_count = np.zeros(self.A, dtype=np.int32)
+        for doc in self.documents:
+            self.text_count[doc.author_index] += 1
+        
+        dset_text_count = corpus_group.create_dataset('text_count', data=self.text_count)
+        dset_text_count.attrs['info'] = 'Number documents of each author.'
+        
+        group_authors = corpus_group.create_group('author_ids')
+        group_authors.attrs['info'] = 'Group of authors, each author has a dataset with the document count and with the author id from the original dataset as attribute.'
+        
+        for key in self.authors:
+            author_ind = self.authors[key]
+            dset_author = group_authors.create_dataset("{}".format(author_ind), data=self.text_count[author_ind]) 
+            dset_author.attrs['authorID'] = key
+        
+    def print_all_author_texts(self, a):
+        '''
+        Print all texts of a given author.
+        '''
+        
+        # Find all texts of author a.
+        texts = [];
+        for doc in self.documents:
+            if (doc.author_index == a):
+                texts.append(doc)
+        
+        for doc in texts:
+            print("---------------------------------------------------------------------")
+            print(doc.body)
         
 class Document:
     '''

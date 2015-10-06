@@ -13,7 +13,7 @@
 #include <boost/timer.hpp>
 
 TEST(InitTest, CanInitialize) {
-    MIChain* chain = new MIChain("../PAN11Large.h5");
+    MIChain* chain = new MIChain("../PAN11Large.h5",0);
     EXPECT_EQ(72, chain->A);		// Check number of authors.
     EXPECT_EQ(9337, chain->D);		// Check number of documents.
     EXPECT_EQ(27101, chain->V);		// Check number of words in vocabulary.
@@ -51,31 +51,16 @@ TEST(InitTest, CanInitialize) {
     EXPECT_EQ(100, chain->N_comb);
     // Check some pairs in lookup table.
     // First: an author topic.
-    EXPECT_TRUE(chain->lookup->at(25).first);
-    EXPECT_EQ(15 ,chain->lookup->at(25).second);
+    EXPECT_TRUE(chain->lookup_table->at(25).first);
+    EXPECT_EQ(15 ,chain->lookup_table->at(25).second);
     // Second: a document topic.
-    EXPECT_FALSE(chain->lookup->at(4).first);
-    EXPECT_EQ(4 ,chain->lookup->at(4).second);
+    EXPECT_FALSE(chain->lookup_table->at(4).first);
+    EXPECT_EQ(4 ,chain->lookup_table->at(4).second);
 }
 
-
-TEST(sum_map_valuesTest, EmptyMap) {
-    MIChain* chain = new MIChain("../PAN11Large.h5");
-    std::map<int,int> m;
-    EXPECT_EQ(0 , chain->sum_map_values(&m));
-}
-
-TEST(sum_map_valuesTest, FilledMap) {
-    MIChain* chain = new MIChain("../PAN11Large.h5");
-    std::map<int,int> m;
-    m[0] = 12;
-    m[1] = 2;
-    m[2] = 1;
-    EXPECT_EQ(15 , chain->sum_map_values(&m));
-}
 
 TEST(SampleTest, ProbabilitiesPositive_SumTo1) {
-    MIChain* chain = new MIChain("../PAN11Large.h5");
+    MIChain* chain = new MIChain("../PAN11Large.h5",0);
     int d=15, ind=2;
     // Get the word.
 	int w = chain->words[d][ind];
@@ -97,88 +82,49 @@ TEST(SampleTest, ProbabilitiesPositive_SumTo1) {
 }
 
 TEST(SampleTest, time) {
-    MIChain* chain = new MIChain("../PAN11Large.h5");
+    MIChain* chain = new MIChain("../PAN11Large.h5",0);
     boost::timer t;
     chain->sample(20,1);
     std::cout << t.elapsed() << " sec elapsed for one sampling." << std::endl;
 }
 
-TEST(IterateTest, time) {
-    MIChain* chain = new MIChain("../PAN11Large.h5");
-    boost::timer t;
-    chain->iterate(1);
-    std::cout << t.elapsed() << " sec elapsed for one iteration." << std::endl;
-}
+//TEST(IterateTest, time) {
+//    MIChain* chain = new MIChain("../PAN11Large.h5",0);
+//    chain->iterate(1);
+//    boost::timer t;
+//    int N = 40;
+//    chain->iterate(N);
+//    std::cout << t.elapsed()/N << " sec elapsed for one iteration on average." << std::endl;
+//}
 
+//TEST(SaveTest, runs) {
+//	MIChain* chain = new MIChain("../PAN11Large.h5",0);
+//	chain->save_sample();
+//	chain->iterate(1);
+//	chain->save_sample();
+//}
 
-TEST(DynCounterTest, CanInitialize) {
-	Dynamic_Counter c;
-	EXPECT_EQ(0, c.sum());
-}
+//TEST(LoadTest, runs) {
+//	MIChain* chain1 = new MIChain("../PAN11Large.h5",0);
+//	chain1->iterate(1);
+//	chain1->save_sample();
+//	MIChain* chain2 = new MIChain("../PAN11Large.h5",0);
+//	chain2->load_sample(0,1);
+//	EXPECT_EQ(chain1->indicators[5][2], chain2->indicators[5][2]);
+//	EXPECT_EQ(chain1->c_d_DA->at(2), chain2->c_d_DA->at(2));
+//	EXPECT_EQ(chain1->num_iter, chain2->num_iter);
+//}
 
-TEST(DynCounterTest, Insert) {
-	Dynamic_Counter c;
-	c.inc(2);
-	EXPECT_EQ(1, c.sum());
-	EXPECT_EQ(1, c.at(2));
-}
+//TEST(IterationTest, CounterSum) {
+//	MIChain* chain = new MIChain("../PAN11Large.h5",0);
+//	for (int i=0; i<5; i++) {
+//		chain->iterate(5);
+//		EXPECT_TRUE(chain->check_sums());
+//	}
+//}
 
-TEST(DynCounterTest, Increment) {
-	Dynamic_Counter c;
-	c.inc(10);
-	c.inc(2);
-	c.inc(2);
-	EXPECT_EQ(3, c.sum());
-	EXPECT_EQ(2, c.at(2));
-}
-
-TEST(DynCounterTest, Decrement) {
-	Dynamic_Counter c;
-	c.inc(10);
-	c.inc(2);
-	c.inc(2);
-	c.dec(2);
-	EXPECT_EQ(2, c.sum());
-	EXPECT_EQ(1, c.at(2));
-}
-
-TEST(DynCounterTest, Remove) {
-	Dynamic_Counter c;
-	c.inc(10);
-	c.inc(2);
-	c.inc(2);
-	c.dec(10);
-	EXPECT_EQ(2, c.sum());
-	EXPECT_EQ(0, c.entries.count(10));
-}
-
-TEST(StatCounterTest, CanInitialize) {
-	Static_Counter c(20);
-	EXPECT_EQ(0, c.sum());
-}
-
-TEST(StatCounterTest, Insert) {
-	Static_Counter c(20);
-	c.inc(2);
-	EXPECT_EQ(1, c.sum());
-	EXPECT_EQ(1, c.at(2));
-}
-
-TEST(StatCounterTest, Increment) {
-	Static_Counter c(20);
-	c.inc(10);
-	c.inc(2);
-	c.inc(2);
-	EXPECT_EQ(3, c.sum());
-	EXPECT_EQ(2, c.at(2));
-}
-
-TEST(StatCounterTest, Decrement) {
-	Static_Counter c(20);
-	c.inc(10);
-	c.inc(2);
-	c.inc(2);
-	c.dec(2);
-	EXPECT_EQ(2, c.sum());
-	EXPECT_EQ(1, c.at(2));
+TEST(DistTest, runs) {
+	MIChain* chain = new MIChain("../PAN11Large.h5",0);
+	chain->iterate(1);
+	chain->calc_distributions();
 }
