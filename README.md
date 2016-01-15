@@ -2,7 +2,7 @@
 
 This is a reimplementation of the approach to authorship attribution originally described in
 
-> Y. Seroussi, I. Zukerman, and F. Bohnert. [Authorship attribution with topic models](http://www.anthology.aclweb.org/J/J14/J14-2003.pdf). Computational Linguistics, pp. 269-310, 2014 [[paper](http://www.anthology.aclweb.org/J/J14/J14-2003.pdf)]
+> Yanir Seroussi, Ingrid Zukerman, and Fabian Bohnert. [Authorship attribution with topic models](http://www.anthology.aclweb.org/J/J14/J14-2003.pdf). Computational Linguistics, pp. 269-310, 2014 [[paper](http://www.anthology.aclweb.org/J/J14/J14-2003.pdf)]
 
 It was reimplemented as part of a science reproducibility study alongside [14 other authorship attribution approaches](https://github.com/search?q="Who+wrote+the+web"+user:pan-webis-de). The results of the reproducibility study can be found in
 
