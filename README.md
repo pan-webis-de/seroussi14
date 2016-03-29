@@ -10,6 +10,8 @@ It was reimplemented as part of a science reproducibility study alongside [14 ot
 
 If you use this reimplementation in your own research, please make sure to cite both of the above papers.
 
+Remark. To date, we did not manage to get the reimplementation to actually reproduce results mentioned in Seroussi's paper. The parameters are chosen as in the paper, whereas the focus was on the PAN11 dataset. Howver, the DADT implementation attributes all test document to one of two authors. Those two authors are the ones with the least words in the training corpus. In the case of PAN11 this is 5 and 23 words---most other authors have over 1000 words. We suspect that the distributions of those two authors are very flat. Because of the few words, i.e., lack of information compared to the other authors, the distributions of these authors should be governed by the prior believes and should be very flat. The probabilities for authors are calculated by multiplying entries of those distributions and summing them up. Therefore we expect that flat distributions yield higher confidences than fluctuating ones. A sanity check whereby the contribution of all authors was balanced, removing the outliers did not solve the problem, since then another two authors were the default choice. At this point, we gave up reproducing this approach. We share the code nevertheless, since you may find it useful in your own research based on Seroussi's work. Please note that we do not wish to suggest that Seroussi's work is not reproducible, but only that we did not succeed at doing so.
+
 ## Usage
 
 To execute the software, install it and make sure all its dependencies are installed as well; then run the software using the following command:
